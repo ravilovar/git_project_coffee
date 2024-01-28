@@ -2,7 +2,7 @@ import sqlite3
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QTableWidgetItem
 
 
 class MyWidget(QMainWindow):
@@ -11,6 +11,8 @@ class MyWidget(QMainWindow):
         uic.loadUi('main.ui', self)
         self.connection = sqlite3.connect("coffee.sqlite")
         self.pushButton.clicked.connect(self.coffee_load)
+        self.addEditFormButton.clicked.connect(self.coffee_add_edit_form)
+        self.second_form = AddEditForm(self, self.connection, self.lineEdit_ID.text())
 
     def coffee_load(self):
         query = """SELECT * FROM Coffee"""
@@ -28,6 +30,48 @@ class MyWidget(QMainWindow):
 
     def closeEvent(self, event):
         self.connection.close()
+
+    def coffee_add_edit_form(self):
+        self.second_form = AddEditForm(self, self.connection, self.lineEdit_ID.text())
+        if int(self.lineEdit_ID.text()) == 0:
+            self.second_form.setWindowTitle('Новая запись')
+        else:
+            self.second_form.setWindowTitle('Изменить запись')
+        self.second_form.show()
+
+
+class AddEditForm(QWidget):
+    def __init__(self, *args):
+        super().__init__()
+        self.connection = args[1]
+        self.coffee_ID = int(args[2])
+        uic.loadUi('addEditCoffeeForm.ui', self)
+        self.saveButton.clicked.connect(self.coffee_add)
+
+    def coffee_add(self):
+        cur = self.connection.cursor()
+        if self.coffee_ID == 0:
+            que = "INSERT INTO Coffee (Name, Roast, Ground, Taste, Price, Package) VALUES(?,?,?,?,?,?)"
+        else:
+            que = f"""UPDATE Coffee 
+                      SET Name=?, Roast=?, Ground=?, Taste=?, Price=?, Package=?
+                      WHERE ID={self.coffee_ID}"""
+        cur.execute(que, (self.lineEdit_1.text(), self.lineEdit_2.text(),
+                          self.lineEdit_3.text(), self.lineEdit_4.text(),
+                          self.lineEdit_5.text(), self.lineEdit_6.text(),
+                          )
+                    )
+        self.connection.commit()
+        self.form_clear()
+        self.hide()
+
+    def form_clear(self):
+        self.lineEdit_1.setText('')
+        self.lineEdit_2.setText('')
+        self.lineEdit_3.setText('')
+        self.lineEdit_4.setText('')
+        self.lineEdit_5.setText('')
+        self.lineEdit_6.setText('')
 
 
 if __name__ == '__main__':
